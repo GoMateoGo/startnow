@@ -1,0 +1,31 @@
+Server:
+  host: 127.0.0.1
+  port: 5000
+  RoutePrefix: "/api" # 接口前缀
+Db:
+  - user: "root"
+    home: "localhost"
+    port: 3308
+    name: "_t"
+    pass: "root"
+    show: true
+    idle: 5
+    open: 5
+    c_id: 0 # 是否以该编号为后缀,例如 t_2003 其中2003就是c_id
+
+# zap logger configuration
+Zap:
+    level: info
+    format: console
+    prefix: "[logger:]"
+    director: log
+    show-line: true
+    encode-level: LowercaseColorLevelEncoder
+    stacktrace-key: stacktrace
+    log-in-console: true
+    retention-day: -1
+
+jwt:
+    signing-key: "all!@#akkwkwjzxjkdkff.,sd,g&%#%^#6yklkldfsksadag&*&##"
+    expires-time: 20 # 过期时间
+    issuer: Mateo123
