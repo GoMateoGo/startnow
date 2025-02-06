@@ -14,15 +14,15 @@ type TableEngine interface {
 }
 
 type LinkInfo struct {
-	User    string       `json:"user"`
-	Home    string       `json:"home"`
-	Port    uint32       `json:"port"`
-	Name    string       `json:"name" `
-	Pass    string       `json:"pass"`
-	Show    bool         `json:"show"`
-	Idle    int          `json:"idle"`
-	Open    int          `json:"open"`
-	CId     int          `json:"c_id" yaml:"c_id"`
+	User    string       `mapstructure:"user" json:"user" yaml:"user"`
+	Home    string       `mapstructure:"home" json:"home" yaml:"home"`
+	Port    uint32       `mapstructure:"port" json:"port" yaml:"port"`
+	Name    string       `mapstructure:"name" json:"name" yaml:"name"`
+	Pass    string       `mapstructure:"pass" json:"pass" yaml:"pass"`
+	Show    bool         `mapstructure:"show" json:"show" yaml:"show"`
+	Idle    int          `mapstructure:"idle" json:"idle" yaml:"idle"`
+	Open    int          `mapstructure:"open" json:"open" yaml:"open"`
+	CId     int          `mapstructure:"c_id" json:"c_id" yaml:"c_id"`
 	XEngine *xorm.Engine `json:"-"`
 }
 
@@ -49,7 +49,8 @@ func InitEngine(val []LinkInfo) error {
 			return err
 		}
 		if 0 != val[i].CId {
-			EngineMap[fmt.Sprintf("%s_%d", val[i].Name, val[i].CId)] = &val[i]
+			fmt.Println("初始化数据库名:", val[i].Name)
+			EngineMap[val[i].Name] = &val[i]
 		} else {
 			EngineMap[val[i].Name] = &val[i]
 		}

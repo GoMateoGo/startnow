@@ -6,6 +6,24 @@ Db:
   - user: "root"
     home: "localhost"
     port: 3308
+    name: "_t_2008"
+    pass: "root"
+    show: true
+    idle: 5
+    open: 5
+    c_id: 2008 # 是否以该编号为后缀,例如 t_2003 其中2003就是c_id
+  - user: "root"
+    home: "localhost"
+    port: 3308
+    name: "_t_1043"
+    pass: "root"
+    show: true
+    idle: 5
+    open: 5
+    c_id: 1043 # 是否以该编号为后缀,例如 t_2003 其中2003就是c_id
+  - user: "root"
+    home: "localhost"
+    port: 3308
     name: "_t"
     pass: "root"
     show: true
