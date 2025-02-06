@@ -2,7 +2,7 @@ package example
 
 type ExampleModel struct {
 	Id   int64  `json:"id"`
-	Name string `json:"name"`
+	Name string `xorm:"name" json:"name"`
 }
 
 func (e *ExampleModel) TableName() string {

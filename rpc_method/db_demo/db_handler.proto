@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package get;
+
+option go_package = "db_demo/dbhandler";
+
+// Get
+message GetRequest {
+    int64 cid = 1;
+    int32 id = 2;
+}
+message GetResponse {
+    int32 id = 1;
+    string name = 2;
+}
+
+
+// List
+message ListRequest{
+    int64 cid = 1;
+}
+message ListResponse{
+    repeated ListData data = 1;
+}
+message ListData{
+    int64 id = 1;
+    string name = 2;
+}
+
+// 定义服务接口
+service DBService {
+    // get
+    rpc Get(GetRequest) returns (GetResponse) {} 
+
+    // list
+    rpc List(ListRequest) returns (ListResponse) {} 
+}
+
+// 项目根目录执行以下命令编译pb文件
+/*
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative rpc_method/get/dbget.proto
+*/
