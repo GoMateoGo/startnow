@@ -1,7 +1,10 @@
-Server:
+HttpServer:
   host: 127.0.0.1
   port: 5000
   RoutePrefix: "/api" # 接口前缀
+RpcServer:
+  host: 127.0.0.1
+  port: 5001
 Db:
   - user: "root"
     home: "localhost"
@@ -45,5 +48,5 @@ Zap:
 
 jwt:
     signing-key: "all!@#akkwkwjzxjkdkff.,sd,g&%#%^#6yklkldfsksadag&*&##"
-    expires-time: 20 # 过期时间
+    expires-time: 3600 # 过期时间
     issuer: Mateo123

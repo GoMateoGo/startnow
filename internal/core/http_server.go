@@ -6,17 +6,19 @@ import (
 	"net/http"
 	"second_hand_mall/internal/global"
 	"second_hand_mall/router"
+	"sync"
 	"time"
 )
 
-type server interface {
+type http_server interface {
 	ListenAndServe() error
 }
 
-func RunServer() {
+func RunHttpServer(wg *sync.WaitGroup) {
+	defer wg.Done()
 	Router := router.InitRouter()
 
-	address := fmt.Sprintf("%s:%s", global.GVAL_CONFIG.Server.Host, global.GVAL_CONFIG.Server.Port)
+	address := fmt.Sprintf("%s:%s", global.GVAL_CONFIG.HttpServer.Host, global.GVAL_CONFIG.HttpServer.Port)
 
 	s := &http.Server{
 		Addr:         address,

@@ -43,8 +43,8 @@ func CreateRouteGroup(r *gin.Engine) {
 	routeRegisters := initBaseRoutes()
 
 	// 路由前缀
-	PublicGroup := r.Group(global.GVAL_CONFIG.Server.RoutePrefix)
-	PrivateGroup := r.Group(global.GVAL_CONFIG.Server.RoutePrefix)
+	PublicGroup := r.Group(global.GVAL_CONFIG.HttpServer.RoutePrefix)
+	PrivateGroup := r.Group(global.GVAL_CONFIG.HttpServer.RoutePrefix)
 
 	PrivateGroup.Use(middleware.JwtSaleLogin()) // 鉴权中间件
 

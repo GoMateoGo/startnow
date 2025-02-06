@@ -6,6 +6,7 @@ import (
 	"second_hand_mall/internal/core/initialize"
 	"second_hand_mall/internal/core/initialize/db"
 	"second_hand_mall/internal/global"
+	"sync"
 )
 
 func main() {
@@ -23,6 +24,11 @@ func main() {
 
 	global.GVAL_LOG.Debug("测试日志")
 
+	var wg sync.WaitGroup
+	wg.Add(2)
 	// 启动http服务
-	core.RunServer()
+	go core.RunHttpServer(&wg)
+	// 启动Rpc服务
+	go core.RunRpcServer(&wg)
+	wg.Wait()
 }

@@ -12,10 +12,11 @@ import (
 )
 
 type Config struct {
-	Server Server
-	Db     []db.LinkInfo // 数据库连接信息
-	Zap    Zap
-	JWT    JWT
+	HttpServer HttpServer
+	RpcServer  RpcServer
+	Db         []db.LinkInfo // 数据库连接信息
+	Zap        Zap
+	JWT        JWT
 }
 
 // 加载本地配置文件
