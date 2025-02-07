@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	dbhandler "second_hand_mall/rpc_method/db_demo"
 	"sync"
@@ -11,79 +12,132 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 )
 
 var (
-	conn   *grpc.ClientConn
-	client dbhandler.DBServiceClient
+	connMutex      sync.RWMutex
+	conn           *grpc.ClientConn            // rpc连接
+	client         dbhandler.DBServiceClient   // rpc服务客户端连接
+	dbHealthClient grpc_health_v1.HealthClient // 健康检测客户端连接
+	healthOnce     sync.Once                   // 创建健康检测实例为单例
 )
 
 func main() {
-	defer conn.Close()
+	// 关闭链接
+	defer func() {
+		connMutex.Lock()
+		conn.Close()
+		connMutex.Unlock()
+	}()
+
+	// 初始化链接
+	initConnection()
+
+	// 启动健康检查
+	go healthCheckLoop(30 * time.Second) // 调整为30秒
+
+	// 业务模拟
+	for {
+		time.Sleep(10 * time.Second)
+		Get()
+		List()
+	}
+}
+
+func initConnection() {
+	connMutex.Lock()
+	defer connMutex.Unlock()
+
 	var err error
 	conn, err = grpc.NewClient("localhost:5001",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                20 * time.Second, // 每隔 30 秒发送心跳
-			Timeout:             10 * time.Second, // 等待确认的超时时间
-			PermitWithoutStream: true,             // 无活跃流时仍发送心跳
+			Time:                20 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
 		}),
 		grpc.WithDefaultServiceConfig(`{
-        "methodConfig": [{
-            "name": [{"service": "dbhandler.DBService"}],
-            "retryPolicy": {
-                "MaxAttempts": 3,
-                "InitialBackoff": "0.1s",
-                "MaxBackoff": "1s",
-                "BackoffMultiplier": 2.0,
-                "RetryableStatusCodes": ["UNAVAILABLE"]
-            }
-        }]
-    }`))
+            "methodConfig": [{
+                "name": [{"service": "dbhandler.DBService"}],
+                "retryPolicy": {
+                    "MaxAttempts": 3,
+                    "InitialBackoff": "0.1s",
+                    "MaxBackoff": "1s",
+                    "BackoffMultiplier": 2.0,
+                    "RetryableStatusCodes": ["UNAVAILABLE"]
+                }
+            }]
+        }`),
+	)
 	if err != nil {
-		log.Fatalf("连接失败:%v", err)
+		log.Fatalf("连接失败: %v", err)
 	}
 
 	client = dbhandler.NewDBServiceClient(conn)
+}
 
-	var wg sync.WaitGroup
+func resetConnection() {
+	connMutex.Lock()
+	defer connMutex.Unlock()
 
-	// 初始化 ticker，每1秒触发一次
-	ticker := time.NewTicker(1 * time.Second)
+	log.Println("尝试重置连接...")
+	conn.Close()
+	initConnection() // 重新初始化连接
+}
+
+// 健康检查
+func checkHealth() error {
+	healthOnce.Do(func() {
+		dbHealthClient = grpc_health_v1.NewHealthClient(conn)
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	resp, err := dbHealthClient.Check(ctx, &grpc_health_v1.HealthCheckRequest{
+		Service: "dbhandler.DBService", // 与服务端一致
+	})
+
+	if err != nil {
+		return fmt.Errorf("健康检查失败: %v", err)
+	}
+
+	if resp.Status != grpc_health_v1.HealthCheckResponse_SERVING {
+		return fmt.Errorf("服务状态异常: %s", resp.Status)
+	}
+
+	log.Println("服务状态正常")
+	return nil
+}
+
+// 健康检查循环
+func healthCheckLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// 启动健康检查
-	wg.Add(1)
-	go checkHealth(&wg, ticker)
-	go func() {
-		for {
-			time.Sleep(30 * time.Second)
-			Get()
-			List()
+	for range ticker.C {
+		// 1. 官方健康协议
+		if err := checkHealth(); err != nil {
+			log.Printf("健康检查异常: %v", err)
+			resetConnection()
 		}
-	}()
-	wg.Wait()
-}
-func checkHealth(wg *sync.WaitGroup, ticker *time.Ticker) {
-	defer wg.Done()
 
-	for {
-		select {
-		case <-ticker.C:
-			state := conn.GetState()
-			if state != connectivity.Ready && state != connectivity.Idle {
-				log.Println("连接不健康，尝试重置...")
-				conn.ResetConnectBackoff()
-			} else {
-				log.Println("rpc client 连接健康", state)
-			}
-		case <-time.After(5 * time.Second):
-			// 设置超时，防止 ticker 阻塞
-			log.Println("检测超时")
-			return
+		// 2. 检查连接状态
+		connMutex.RLock()
+		state := conn.GetState()
+		connMutex.RUnlock()
+
+		if !isConnectionHealthy(state) {
+			log.Printf("连接状态异常: %v", state)
+			resetConnection()
 		}
 	}
+}
+
+func isConnectionHealthy(state connectivity.State) bool {
+	return state == connectivity.Ready || state == connectivity.Idle
 }
 
 func Get() {

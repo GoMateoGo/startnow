@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -26,6 +28,14 @@ func RunRpcServer(wg *sync.WaitGroup) {
 		//MaxConnectionAge:      30 * time.Minute, // 一个连接存在的最大时间
 		//MaxConnectionAgeGrace: 5 * time.Minute, // 当超过最大时间时,给与正在进行请求的宽限时间
 	}))
+
+	// 注册健康检查服务
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(s, healthServer)
+
+	// 设置服务状态为 SERVING
+	healthServer.SetServingStatus("dbhandler.DBService", grpc_health_v1.HealthCheckResponse_SERVING)
+
 	// 注册Rpc服务
 	router.RegisterRpcMethod(s)
 	//pb.RegisterGreeterServer(s, &rpc_server{})
