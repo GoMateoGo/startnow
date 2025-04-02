@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	conn, err := grpc.NewClient("localhost:5001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("1.94.227.242:8012", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("连接失败:%v", err)
 	}

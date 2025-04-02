@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -10,9 +11,13 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func RunRpcServer(wg *sync.WaitGroup) {
@@ -43,4 +48,54 @@ func RunRpcServer(wg *sync.WaitGroup) {
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("rpc服务启动失败: %v", err)
 	}
+}
+
+// 定义白名单
+var whitelist = map[string]bool{
+	"127.0.0.1":     true,
+	"192.168.1.100": true,
+	// 添加更多允许的 IP 地址
+}
+
+// 自定义拦截器
+func unaryInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (interface{}, error) {
+	// 获取元数据
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+	}
+
+	// 获取客户端 IP 地址
+	addresses := md.Get("x-forwarded-for")
+	if len(addresses) == 0 {
+		// 如果没有 x-forwarded-for 头，则尝试从上下文获取
+		peer, ok := peer.FromContext(ctx)
+		if ok {
+			addresses = append(addresses, peer.Addr.String())
+		}
+	}
+
+	if len(addresses) == 0 {
+		return nil, status.Error(codes.Unauthenticated, "unable to determine client IP")
+	}
+
+	// 假设第一个地址是客户端的真实 IP
+	clientIP := addresses[0]
+	// 去除端口号
+	clientIP, _, err := net.SplitHostPort(clientIP)
+	if err != nil {
+		clientIP = addresses[0]
+	}
+
+	if !whitelist[clientIP] {
+		return nil, status.Error(codes.PermissionDenied, "your IP address is not allowed")
+	}
+
+	// 继续处理请求
+	return handler(ctx, req)
 }

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package rpc_method.student;
+
+option go_package = "student/student";
+
+// Get
+message AddRequest {
+     repeated AddListData data = 1;
+}
+message AddListData{
+    string ca_number =1;
+    int64 student_id =2;
+    int64 c_id =3;
+    string c_name =4;
+    int64 p_id =5;
+    string p_name =6;
+    string user_name =7;
+    int64 class_id =8;
+    string class_name =9;
+    string phone =10;
+    string bill_number =11;
+    float amount =12;
+    string type = 13;
+    int64 pay_cid = 14;
+    int64 user_id = 15;
+}
+
+message Response {
+    int32 code = 1;
+}
+
+// 定义服务接口
+service DBService {
+    // get
+    rpc Add(AddRequest) returns (Response) {} 
+}
+
+// 项目根目录执行以下命令编译pb文件
+/*
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative rpc_method/ca/proto/student.proto
+*/
